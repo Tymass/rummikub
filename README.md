@@ -11,4 +11,5 @@ Spełnione założenia projektowe:
  - Sprawdzenie poprawności ruchu (3 pkt)
  - Dociąganie płytek do siatki (2 pkt)
  - Grafiki zewnętrzne z pliku .rc (1 pkt)
+
 Suma punktów: 12
