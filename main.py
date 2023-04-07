@@ -1,12 +1,14 @@
 import sys
 import random
-import resources_rc
+from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox
 from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox
 from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent, QPainter, QColor
 from PyQt6.QtCore import Qt, QTimer, QTime, QRectF, QSize
-
+import resources_rc
 
 # List 1 class
+
+
 class ListView_Left(QListView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -109,7 +111,7 @@ class ListView_Right(QListView):
         self.parent.listViewLeft.model().removeRow(
             self.parent.listViewLeft.currentIndex().row())
 
-# Tile class
+# Tile classes
 
 
 class Tile(QStandardItem):
@@ -192,6 +194,7 @@ class MyApp(QMainWindow):
         self.player_tiles_nr = 14
         self.container = []
         self.upper_bar_moves = []
+        self.move_history = []
 
         # Create a QGraphicsScene
         self.scene = QGraphicsScene()
@@ -327,21 +330,44 @@ class MyApp(QMainWindow):
             rnd_tile = random.randint(0, len(self.container)-1)
             self.listViewRight.m_model.appendRow(self.container[rnd_tile])
             self.container.remove(self.container[rnd_tile])
+            self.move_history.append(self.save_board_state())
+            print(self.move_history)
+
+    def save_board_state(self):
+        state_copy = []
+        for row in range(self.board.rowCount()):
+            row_copy = []
+            for col in range(self.board.columnCount()):
+                item = self.board.item(row, col)
+                if item:
+                    row_copy.append((item.tile.number, item.icon()))
+                else:
+                    row_copy.append(None)
+            state_copy.append(row_copy)
+        return state_copy
+
+    def get_tile_by_id(self, tile_id):
+        for tile in self.tiles:  # Assuming you have a list of tiles named 'tiles'
+            if tile.id == tile_id:
+                return tile
+        return None
 
     def undo_move(self):
-        if self.board.last_move:
-            row, col, source, selected_item = self.board.last_move
+        if len(self.move_history) > 1:  # Ensure there's a previous state to revert to
+            self.move_history.pop()  # Remove the current state
+            previous_state = self.move_history[-1]
 
-            self.board.takeItem(row, col)
-
-            tile = Tile(number=selected_item.number, color=selected_item.color)
-            tile.setIcon(selected_item.icon())
-            tile.setData(selected_item.number, Qt.ItemDataRole.UserRole)
-
-            if source == self.listViewLeft:
-                self.listViewLeft.m_model.appendRow(tile)
-
-            self.board.last_move = None
+            for row, row_state in enumerate(previous_state):
+                for col, cell_state in enumerate(row_state):
+                    if cell_state:
+                        piece_id, icon = cell_state
+                        tile = self.get_tile_by_id(piece_id)
+                        if tile:
+                            item = TileTableWidgetItem(tile)
+                            item.setIcon(icon)
+                            self.board.setItem(row, col, item)
+                    else:
+                        self.board.takeItem(row, col)
 
     # Moves checker
     def check_board(self):
