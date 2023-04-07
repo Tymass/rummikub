@@ -1,9 +1,9 @@
 import sys
+import random
+import resources_rc
 from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox
 from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent, QPainter, QColor
-import random
 from PyQt6.QtCore import Qt, QTimer, QTime, QRectF, QSize
-import resources_rc
 
 
 # List 1 class
