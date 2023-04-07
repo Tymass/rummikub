@@ -1,0 +1,62 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+
+    <file>images/1-black.png</file>
+    <file>images/1-blue.png</file>
+    <file>images/1-red.png</file>
+    <file>images/1-green.png</file>
+    <file>images/2-black.png</file>
+    <file>images/2-blue.png</file>
+    <file>images/2-red.png</file>
+    <file>images/2-green.png</file>
+    <file>images/3-black.png</file>
+    <file>images/3-blue.png</file>
+    <file>images/3-red.png</file>
+    <file>images/3-green.png</file>
+    <file>images/4-black.png</file>
+    <file>images/4-blue.png</file>
+    <file>images/4-red.png</file>
+    <file>images/4-green.png</file>
+    <file>images/5-black.png</file>
+    <file>images/5-blue.png</file>
+    <file>images/5-red.png</file>
+    <file>images/5-green.png</file>
+    <file>images/6-black.png</file>
+    <file>images/6-blue.png</file>
+    <file>images/6-red.png</file>
+    <file>images/6-green.png</file>
+    <file>images/7-black.png</file>
+    <file>images/7-blue.png</file>
+    <file>images/7-red.png</file>
+    <file>images/7-green.png</file>
+    <file>images/8-black.png</file>
+    <file>images/8-blue.png</file>
+    <file>images/8-red.png</file>
+    <file>images/8-green.png</file>
+    <file>images/9-black.png</file>
+    <file>images/9-blue.png</file>
+    <file>images/9-red.png</file>
+    <file>images/9-green.png</file>
+    <file>images/10-black.png</file>
+    <file>images/10-blue.png</file>
+    <file>images/10-red.png</file>
+    <file>images/10-green.png</file>
+    <file>images/11-black.png</file>
+    <file>images/11-blue.png</file>
+    <file>images/11-red.png</file>
+    <file>images/11-green.png</file>
+    <file>images/12-black.png</file>
+    <file>images/12-blue.png</file>
+    <file>images/12-red.png</file>
+    <file>images/12-green.png</file>
+    <file>images/13-black.png</file>
+    <file>images/13-blue.png</file>
+    <file>images/13-red.png</file>
+    <file>images/13-green.png</file>
+    <file>images/14-black.png</file>
+    <file>images/14-blue.png</file>
+    <file>images/14-red.png</file>
+    <file>images/14-green.png</file>
+   
+</qresource>
+</RCC>
