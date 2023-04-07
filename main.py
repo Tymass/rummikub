@@ -331,7 +331,7 @@ class MyApp(QMainWindow):
             self.listViewRight.m_model.appendRow(self.container[rnd_tile])
             self.container.remove(self.container[rnd_tile])
             self.move_history.append(self.save_board_state())
-            print(self.move_history)
+            # print(self.move_history)
 
     def save_board_state(self):
         state_copy = []
