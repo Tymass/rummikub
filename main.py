@@ -1,8 +1,7 @@
 import sys
 import random
-from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox, QVBoxLayout, QLabel, QLineEdit
-from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox, QButtonGroup, QRadioButton, QHBoxLayout
-from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent, QPainter, QColor, QDrag, QWindow
+from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox, QVBoxLayout, QLabel, QLineEdit, QHBoxLayout, QRadioButton
+from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent, QPainter, QColor, QDrag
 from PyQt6.QtCore import Qt, QTimer, QTime, QRectF, QSize, QMimeData, QPoint
 import xml.etree.ElementTree as ET
 import sqlite3
