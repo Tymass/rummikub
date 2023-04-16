@@ -1,10 +1,14 @@
 import sys
 import random
+from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox, QVBoxLayout, QLabel, QLineEdit
 from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox
-from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox
-from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent, QPainter, QColor
-from PyQt6.QtCore import Qt, QTimer, QTime, QRectF, QSize
+from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent, QPainter, QColor, QDrag
+from PyQt6.QtCore import Qt, QTimer, QTime, QRectF, QSize, QMimeData, QPoint
+import xml.etree.ElementTree as ET
+import sqlite3
+import json
 import resources_rc
+import socket
 
 # List 1 class
 
@@ -56,6 +60,52 @@ class Board(QTableWidget):
         header.setDefaultSectionSize(int(h/12+5))
 
         self.last_move = None
+        self.dragStartPosition = None
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            row = self.rowAt(int(event.position().y()))
+            col = self.columnAt(int(event.position().x()))
+            if self.item(row, col):
+                self.dragStartPosition = event.position()
+
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if (not self.dragStartPosition) or ((event.buttons() & Qt.MouseButton.LeftButton) == 0):
+            return
+
+        if (event.position() - self.dragStartPosition).manhattanLength() < QApplication.startDragDistance():
+            return
+
+        row = self.rowAt(int(self.dragStartPosition.y()))
+        col = self.columnAt(int(self.dragStartPosition.x()))
+
+        drag_item = self.item(row, col)
+        if not drag_item:
+            return
+
+        mime_data = QMimeData()
+        mime_data.setText("dragging")
+
+        drag = QDrag(self)
+        drag.setMimeData(mime_data)
+        drag.setPixmap(drag_item.icon().pixmap(self.iconSize()))
+        drag.setHotSpot(QPoint(self.iconSize().width() //
+                        2, self.iconSize().height() // 2))
+
+        self.takeItem(row, col)
+        self.dragStartPosition = None
+
+        drop_action = drag.exec(Qt.DropAction.MoveAction)
+        if drop_action == Qt.DropAction.IgnoreAction:
+            self.setItem(row, col, drag_item)
+
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self.dragStartPosition = None
+        super().mouseReleaseEvent(event)
 
     def dropEvent(self, event):
         # Get the source widget (QListView)
@@ -183,6 +233,42 @@ class AnalogTimer(QWidget):
         painter.drawLine(0, 0, 0, -24)
         painter.restore()
 
+
+class IpPortInput(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.layout = QVBoxLayout(self)
+
+        self.ip_label = QLabel("IP Address:")
+        self.ip_input = QLineEdit()
+        self.ip_input.setPlaceholderText("Enter your IP Address")
+        self.ip_input.setText(self.get_local_ip())
+
+        self.port_label = QLabel("Port Number:")
+        self.port_input = QLineEdit()
+        self.port_input.setPlaceholderText("Enter Port Number")
+
+        self.apply_button = QPushButton("Apply")
+        self.apply_button.clicked.connect(self.get_ip_port)
+
+        self.layout.addWidget(self.ip_label)
+        self.layout.addWidget(self.ip_input)
+        self.layout.addWidget(self.port_label)
+        self.layout.addWidget(self.port_input)
+        self.layout.addWidget(self.apply_button)
+
+    def get_ip_port(self):
+        ip_address = self.ip_input.text()
+        port_number = self.port_input.text()
+        print(f'IP address: {ip_address}, \nPort number: {port_number}')
+        return ip_address, port_number
+
+    def get_local_ip(self):
+        hostname = socket.gethostname()
+        ip_address = socket.gethostbyname(hostname)
+        return ip_address
+
 # Main window class
 
 
@@ -191,6 +277,8 @@ class MyApp(QMainWindow):
         super().__init__()
         self.setWindowTitle('MyApp')
         self.showFullScreen()
+        self.initialize_history_files()
+        self.init_db()
         self.player_tiles_nr = 14
         self.container = []
         self.upper_bar_moves = []
@@ -210,7 +298,9 @@ class MyApp(QMainWindow):
         self.restart_button.setFixedWidth(200)
         self.load_piece_button = QPushButton("Add Piece")
         self.load_piece_button_up = QPushButton("Add Piece")
-        self.undo_button = QPushButton("Undo Move")
+        self.undo_button = QPushButton("Save game state")
+        self.save_json = QPushButton("Save history to Jason")
+        self.ip_input = IpPortInput()
 
         # Create QGraphicsProxyWidget objects for all widgets
         # List 1
@@ -254,6 +344,14 @@ class MyApp(QMainWindow):
         self.undo_button_proxy = QGraphicsProxyWidget()
         self.undo_button_proxy.setWidget(self.undo_button)
         self.undo_button_proxy.setPos(1900, 59)
+        # Save buttons
+        self.save_jason_proxy = QGraphicsProxyWidget()
+        self.save_jason_proxy.setWidget(self.save_json)
+        self.save_jason_proxy.setPos(1700, 59)
+
+        self.ip_input_proxy = QGraphicsProxyWidget()
+        self.ip_input_proxy.setWidget(self.ip_input)
+        self.ip_input_proxy.setPos(1800, -120)
 
         # Add the QGraphicsProxyWidget objects to the QGraphicsScene
         self.scene.addItem(self.listViewLeftProxy)
@@ -266,6 +364,8 @@ class MyApp(QMainWindow):
         self.scene.addItem(self.load_piece_button_proxy)
         self.scene.addItem(self.load_piece_button_up_proxy)
         self.scene.addItem(self.undo_button_proxy)
+        self.scene.addItem(self.ip_input_proxy)
+        # self.scene.addItem(self.save_jason_proxy)
 
         # Set the QGraphicsScene as the central widget of the main window
         self.view = QGraphicsView(self.scene)
@@ -283,7 +383,32 @@ class MyApp(QMainWindow):
         self.restart_button.clicked.connect(self.analog_timer.restart_timer)
         self.load_piece_button.clicked.connect(self.load_piece)
         self.load_piece_button_up.clicked.connect(self.load_piece_up)
-        self.undo_button.clicked.connect(self.undo_move)
+        self.undo_button.clicked.connect(self.save_board_state)
+        # self.save_json.clicked.connect(self.save_board_state_to_json_file)
+
+    def init_db(self):
+        conn = sqlite3.connect("game_history.db")
+        c = conn.cursor()
+
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS game_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                state TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+
+    def initialize_history_files(self):
+        # Clear the JSON history file
+        with open("board_state_json.json", "w") as f:
+            f.write("[]")
+
+        # Clear the XML history file
+        with open("board_state.xml", "w") as f:
+            f.write("<boardHistory></boardHistory>")
 
     # Loading items
     def loadIcons(self):
@@ -330,8 +455,58 @@ class MyApp(QMainWindow):
             rnd_tile = random.randint(0, len(self.container)-1)
             self.listViewRight.m_model.appendRow(self.container[rnd_tile])
             self.container.remove(self.container[rnd_tile])
-            self.move_history.append(self.save_board_state())
+            # self.move_history.append(self.save_board_state())
             # print(self.move_history)
+
+    def save_board_state_to_json_file(self, state, file_name):
+        # Read the existing history
+        with open(file_name, 'r') as f:
+            history = json.load(f)
+
+        # Append the current state
+        history.append(state)
+
+        # Save the modified history
+        with open(file_name, 'w') as f:
+            json.dump(history, f, indent=4)
+
+    def save_board_state_to_xml_file(self, state, file_name):
+        # Read the existing history
+        with open(file_name, 'r') as f:
+            xml_content = f.read()
+
+        # Parse the XML content
+        root = ET.fromstring(xml_content)
+
+        # Create a new <boardState> element
+        board_state_element = ET.Element("boardState")
+
+        # Append the current state as <row> elements
+        for row in state:
+            row_element = ET.SubElement(board_state_element, "row")
+            for cell in row:
+                if cell:
+                    cell_element = ET.SubElement(row_element, "cell")
+                    cell_element.set("number", str(cell[0]))
+                    cell_element.set("color", cell[1])
+                    #cell_element.set("icon", cell[2])
+                else:
+                    ET.SubElement(row_element, "emptyCell")
+
+        # Append the <boardState> element to the root
+        root.append(board_state_element)
+
+        # Save the modified history
+        with open(file_name, 'w') as f:
+            f.write(ET.tostring(root, encoding="unicode"))
+
+    def save_game_state(self, state):
+        conn = sqlite3.connect("game_history.db")
+        c = conn.cursor()
+
+        c.execute("INSERT INTO game_history (state) VALUES (?)", (state,))
+        conn.commit()
+        conn.close()
 
     def save_board_state(self):
         state_copy = []
@@ -340,14 +515,21 @@ class MyApp(QMainWindow):
             for col in range(self.board.columnCount()):
                 item = self.board.item(row, col)
                 if item:
-                    row_copy.append((item.tile.number, item.icon()))
+                    row_copy.append(
+                        (item.tile.number, item.tile.color))
                 else:
                     row_copy.append(None)
             state_copy.append(row_copy)
+        # print(state_copy)
+        self.save_board_state_to_xml_file(state_copy, "board_state.xml")
+        self.save_board_state_to_json_file(state_copy, "board_state_json.json")
+        json_state = json.dumps(state_copy)
+        self.save_game_state(json_state)
+
         return state_copy
 
     def get_tile_by_id(self, tile_id):
-        for tile in self.tiles:  # Assuming you have a list of tiles named 'tiles'
+        for tile in self.tiles:
             if tile.id == tile_id:
                 return tile
         return None
