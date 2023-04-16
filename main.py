@@ -1,8 +1,8 @@
 import sys
 import random
 from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox, QVBoxLayout, QLabel, QLineEdit
-from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox
-from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent, QPainter, QColor, QDrag
+from PyQt6.QtWidgets import QApplication, QWidget, QListView, QAbstractItemView, QTableWidget, QHeaderView, QPushButton, QTableWidgetItem, QGraphicsScene, QGraphicsView, QMainWindow, QGraphicsProxyWidget, QMessageBox, QButtonGroup, QRadioButton, QHBoxLayout
+from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent, QPainter, QColor, QDrag, QWindow
 from PyQt6.QtCore import Qt, QTimer, QTime, QRectF, QSize, QMimeData, QPoint
 import xml.etree.ElementTree as ET
 import sqlite3
@@ -269,6 +269,7 @@ class IpPortInput(QWidget):
         ip_address = socket.gethostbyname(hostname)
         return ip_address
 
+
 # Main window class
 
 
@@ -276,7 +277,7 @@ class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('MyApp')
-        self.showFullScreen()
+        # self.showFullScreen()
         self.initialize_history_files()
         self.init_db()
         self.player_tiles_nr = 14
@@ -606,6 +607,68 @@ class MyApp(QMainWindow):
                 self, "Board Validation", "The board is not valid according to Rummikub rules.")
 
 
+class Lobby(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.vbox = QVBoxLayout()
+        self.hbox = QHBoxLayout()
+
+        self.button1 = QRadioButton("Single player")
+        self.button1.toggled.connect(self.updateLabel)
+        self.button2 = QRadioButton("1 vs 1")
+        self.button2.toggled.connect(self.updateLabel)
+        self.button3 = QRadioButton("Player vs AI")
+        self.button3.toggled.connect(self.updateLabel)
+        self.label = QLabel('', self)
+        self.info = QLabel("Choose game mode:")
+        self.accept_button = QPushButton("Accept game mode")
+        self.accept_button.clicked.connect(self.showMainWindow)
+
+        self.hbox.addWidget(self.button1)
+        self.hbox.addWidget(self.button2)
+        self.hbox.addWidget(self.button3)
+
+        self.vbox.addWidget(self.info)
+        self.vbox.addLayout(self.hbox)
+        self.vbox.addWidget(self.label)
+        self.vbox.addWidget(self.accept_button)
+
+        self.setLayout(self.vbox)
+
+        self.setGeometry(400, 300, 350, 250)
+        self.setWindowTitle("Lobby")
+        self.show()
+
+    def updateLabel(self, _):
+
+        rbtn = self.sender()
+
+        if rbtn.isChecked() == True:
+            self.label.setText(rbtn.text())
+
+    def showMainWindow(self):
+        game_mode = 0
+        self.mainWindow = myApp
+
+        if self.button1.isChecked():
+            game_mode = 1
+            self.mainWindow.showFullScreen()
+            self.destroy()
+        elif self.button2.isChecked():
+            game_mode = 2
+            self.mainWindow.showFullScreen()
+            self.destroy()
+        elif self.button3.isChecked():
+            game_mode = 3
+            self.mainWindow.showFullScreen()
+            self.destroy()
+        else:
+            QMessageBox.warning(self, "Error", "Choose game mode")
+        # print(choose)
+        return game_mode
+
+
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
@@ -615,7 +678,8 @@ if __name__ == '__main__':
     w = size.width()
     h = size.height()
     myApp = MyApp()
-    myApp.show()
+
+    ex = Lobby()
 
     try:
         sys.exit(app.exec())
