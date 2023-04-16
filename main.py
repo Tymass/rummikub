@@ -387,7 +387,7 @@ class MyApp(QMainWindow):
         # self.save_json.clicked.connect(self.save_board_state_to_json_file)
 
     def init_db(self):
-        conn = sqlite3.connect("game_history.db")
+        conn = sqlite3.connect("database/game_history.db")
         c = conn.cursor()
 
         c.execute('''
@@ -403,11 +403,11 @@ class MyApp(QMainWindow):
 
     def initialize_history_files(self):
         # Clear the JSON history file
-        with open("board_state_json.json", "w") as f:
+        with open("database/board_state_json.json", "w") as f:
             f.write("[]")
 
         # Clear the XML history file
-        with open("board_state.xml", "w") as f:
+        with open("database/board_state.xml", "w") as f:
             f.write("<boardHistory></boardHistory>")
 
     # Loading items
@@ -501,7 +501,7 @@ class MyApp(QMainWindow):
             f.write(ET.tostring(root, encoding="unicode"))
 
     def save_game_state(self, state):
-        conn = sqlite3.connect("game_history.db")
+        conn = sqlite3.connect("database/game_history.db")
         c = conn.cursor()
 
         c.execute("INSERT INTO game_history (state) VALUES (?)", (state,))
@@ -521,8 +521,10 @@ class MyApp(QMainWindow):
                     row_copy.append(None)
             state_copy.append(row_copy)
         # print(state_copy)
-        self.save_board_state_to_xml_file(state_copy, "board_state.xml")
-        self.save_board_state_to_json_file(state_copy, "board_state_json.json")
+        self.save_board_state_to_xml_file(
+            state_copy, "database/board_state.xml")
+        self.save_board_state_to_json_file(
+            state_copy, "database/board_state_json.json")
         json_state = json.dumps(state_copy)
         self.save_game_state(json_state)
 
