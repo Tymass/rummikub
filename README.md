@@ -25,6 +25,6 @@ Spełnione założenia projektowe:
  - zapis historii gry w xml-u - 1 pkt
  - zapis/odczyt opcji w json - 1pkt 
  
- Suma punktów: 4
+ Suma punktów: 5
  
  
