@@ -258,10 +258,11 @@ class IpPortInput(QWidget):
         self.layout.addWidget(self.apply_button)
 
     def get_ip_port(self):
-        ip_address = self.ip_input.text()
-        port_number = self.port_input.text()
-        print(f'IP address: {ip_address}, \nPort number: {port_number}')
-        return ip_address, port_number
+        self.ip_address = self.ip_input.text()
+        self.port_number = self.port_input.text()
+        print(
+            f'IP address: {self.ip_address}, \nPort number: {self.port_number}')
+        return self.ip_address, self.port_number
 
     def get_local_ip(self):
         hostname = socket.gethostname()
@@ -269,16 +270,75 @@ class IpPortInput(QWidget):
         return ip_address
 
 
+class Lobby(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.vbox = QVBoxLayout()
+        self.hbox = QHBoxLayout()
+
+        self.button1 = QRadioButton("Single player")
+        self.button1.toggled.connect(self.updateLabel)
+        self.button2 = QRadioButton("1 vs 1")
+        self.button2.toggled.connect(self.updateLabel)
+        self.button3 = QRadioButton("Player vs AI")
+        self.button3.toggled.connect(self.updateLabel)
+        self.label = QLabel('', self)
+        self.info = QLabel("Choose game mode:")
+        self.accept_button = QPushButton("Accept game mode")
+        self.accept_button.clicked.connect(self.showMainWindow)
+
+        self.hbox.addWidget(self.button1)
+        self.hbox.addWidget(self.button2)
+        self.hbox.addWidget(self.button3)
+
+        self.vbox.addWidget(self.info)
+        self.vbox.addLayout(self.hbox)
+        self.vbox.addWidget(self.label)
+        self.vbox.addWidget(self.accept_button)
+
+        self.setLayout(self.vbox)
+
+        self.setGeometry(400, 300, 350, 250)
+        self.setWindowTitle("Lobby")
+        self.show()
+
+    def updateLabel(self, _):
+
+        rbtn = self.sender()
+
+        if rbtn.isChecked() == True:
+            self.label.setText(rbtn.text())
+
+    def showMainWindow(self):
+        self.game_mode = 0
+
+        if self.button1.isChecked():
+            self.game_mode = 1
+        elif self.button2.isChecked():
+            self.game_mode = 2
+        elif self.button3.isChecked():
+            self.game_mode = 3
+        else:
+            QMessageBox.warning(self, "Error", "Choose game mode")
+            return
+
+        self.mainWindow = MyApp(self.game_mode)
+        self.mainWindow.showFullScreen()
+        self.destroy()
+        return self.game_mode
+
 # Main window class
 
 
-class MyApp(QMainWindow):
-    def __init__(self):
+class MyApp(QMainWindow, Lobby):
+    def __init__(self, game_mode):
         super().__init__()
         self.setWindowTitle('MyApp')
         # self.showFullScreen()
         self.initialize_history_files()
         self.init_db()
+        self.game_mode = game_mode
         self.player_tiles_nr = 14
         self.container = []
         self.upper_bar_moves = []
@@ -458,13 +518,21 @@ class MyApp(QMainWindow):
             # self.move_history.append(self.save_board_state())
             # print(self.move_history)
 
-    def save_board_state_to_json_file(self, state, file_name):
-        # Read the existing history
-        with open(file_name, 'r') as f:
-            history = json.load(f)
+    def get_ip_port_values(self):
+        return self.ip_input.ip_address, self.ip_input.port_number
 
+    def save_board_state_to_json_file(self, file_name):
+        # Read the existing history
+        ip_address, port_number = self.get_ip_port_values()
+        history = []
         # Append the current state
-        history.append(state)
+        config = {
+            "ip_address": str(ip_address),
+            "port_nr": str(port_number),
+            "game_mode": str(self.game_mode),
+        }
+
+        history.append(config)
 
         # Save the modified history
         with open(file_name, 'w') as f:
@@ -523,8 +591,7 @@ class MyApp(QMainWindow):
         # print(state_copy)
         self.save_board_state_to_xml_file(
             state_copy, "database/board_state.xml")
-        self.save_board_state_to_json_file(
-            state_copy, "database/board_state_json.json")
+        self.save_board_state_to_json_file("database/board_state_json.json")
         json_state = json.dumps(state_copy)
         self.save_game_state(json_state)
 
@@ -608,68 +675,6 @@ class MyApp(QMainWindow):
                 self, "Board Validation", "The board is not valid according to Rummikub rules.")
 
 
-class Lobby(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        self.vbox = QVBoxLayout()
-        self.hbox = QHBoxLayout()
-
-        self.button1 = QRadioButton("Single player")
-        self.button1.toggled.connect(self.updateLabel)
-        self.button2 = QRadioButton("1 vs 1")
-        self.button2.toggled.connect(self.updateLabel)
-        self.button3 = QRadioButton("Player vs AI")
-        self.button3.toggled.connect(self.updateLabel)
-        self.label = QLabel('', self)
-        self.info = QLabel("Choose game mode:")
-        self.accept_button = QPushButton("Accept game mode")
-        self.accept_button.clicked.connect(self.showMainWindow)
-
-        self.hbox.addWidget(self.button1)
-        self.hbox.addWidget(self.button2)
-        self.hbox.addWidget(self.button3)
-
-        self.vbox.addWidget(self.info)
-        self.vbox.addLayout(self.hbox)
-        self.vbox.addWidget(self.label)
-        self.vbox.addWidget(self.accept_button)
-
-        self.setLayout(self.vbox)
-
-        self.setGeometry(400, 300, 350, 250)
-        self.setWindowTitle("Lobby")
-        self.show()
-
-    def updateLabel(self, _):
-
-        rbtn = self.sender()
-
-        if rbtn.isChecked() == True:
-            self.label.setText(rbtn.text())
-
-    def showMainWindow(self):
-        game_mode = 0
-        self.mainWindow = myApp
-
-        if self.button1.isChecked():
-            game_mode = 1
-            self.mainWindow.showFullScreen()
-            self.destroy()
-        elif self.button2.isChecked():
-            game_mode = 2
-            self.mainWindow.showFullScreen()
-            self.destroy()
-        elif self.button3.isChecked():
-            game_mode = 3
-            self.mainWindow.showFullScreen()
-            self.destroy()
-        else:
-            QMessageBox.warning(self, "Error", "Choose game mode")
-        # print(choose)
-        return game_mode
-
-
 if __name__ == '__main__':
 
     app = QApplication(sys.argv)
@@ -678,7 +683,7 @@ if __name__ == '__main__':
     size = screen.size()
     w = size.width()
     h = size.height()
-    myApp = MyApp()
+    #myApp = MyApp()
 
     ex = Lobby()
 
