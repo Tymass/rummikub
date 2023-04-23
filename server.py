@@ -48,15 +48,15 @@ def Tcp_Close():
     return
 
 
+#Tcp_connect('153.19.216.10', 17098)
 Tcp_server_wait(5, 17098)
 Tcp_server_next()
 
 while True:
 
-    print(str(Tcp_Read()))
-    print("----------------------------------------------")
-    print()
-
-    # Tcp_Write('hello')
+    json_data = str(Tcp_Read())
+    with open("database/json_received.json", "w") as f:
+        json.dump(json_data, f)
+    break
 
 Tcp_Close()

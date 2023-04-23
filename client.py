@@ -1,28 +1,55 @@
 # echo-client.py
 
 import socket
+import time
+import json
 
 
-# create a socket object
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+class Client:
+    def __init__(self, host_ip, port):
+        self.host_ip = host_ip
+        self.port = port
 
-# get the local machine name
-host = socket.gethostname()
-port = 12345
+    def read_json_file(self, file_name):
+        f = open(file_name)
+        # returns JSON object as
+        # a dictionary
+        data = str(json.load(f))
 
-# connect to the server
-client_socket.connect((host, port))
-print('Connected to {}:{}'.format(host, port))
+        print(data)
+        return data
 
-# continuously send and receive data with the server
-while True:
-    # send data to the server
-    message = input('Enter a message to send to server: ')
-    client_socket.send(message.encode())
+    def Tcp_connect(self):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((self.host_ip, self.port))
+        return
 
-    # receive data from the server
-    #data = client_socket.recv(1024)
-    #print('Received data from server: {}'.format(data.decode()))
+    def Tcp_Write(self, D):
+        mes = str(D + '\r')
+        self.s.send(mes.encode())
+        return
 
-# close the connection
-client_socket.close()
+    def Tcp_Read(self):
+        a = ' '
+        b = ''
+        while a != '\r':
+            a = self.s.recv(1).decode()
+            b = b + a
+        return b
+
+    def Tcp_Close(self):
+        self.s.close()
+        return
+
+
+client = Client('153.19.216.10', 17098)
+client.Tcp_connect()
+
+data = client.read_json_file('database/board_state_json.json')
+
+client.Tcp_Write(data)
+print(client.Tcp_Read())
+client.Tcp_Write('server')
+print(client.Tcp_Read())
+
+client.Tcp_Close()

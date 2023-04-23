@@ -131,6 +131,12 @@ class Board(QTableWidget):
         # Call the superclass dropEvent to handle other events
         super().dropEvent(event)
 
+    def set_tile(self, tile, row: int, col: int):
+        table_widget_item = QTableWidgetItem()
+        table_widget_item.setIcon(tile.icon())
+        table_widget_item.tile = tile  # Store the Tile object for future reference
+        self.setItem(row, col, table_widget_item)
+
 
 # List 2 class
 class ListView_Right(QListView):
@@ -382,8 +388,9 @@ class MyApp(QMainWindow, Lobby):
         self.restart_button.setFixedWidth(200)
         self.load_piece_button = QPushButton("Add Piece")
         self.load_piece_button_up = QPushButton("Add Piece")
-        self.undo_button = QPushButton("Save game state")
+        self.undo_button = QPushButton("Next Round")
         self.save_json = QPushButton("Save history to Jason")
+        self.refresh_button = QPushButton("Refresh")
         #self.ip_input = IpPortInput()
 
         # Create QGraphicsProxyWidget objects for all widgets
@@ -433,6 +440,10 @@ class MyApp(QMainWindow, Lobby):
         self.save_jason_proxy.setWidget(self.save_json)
         self.save_jason_proxy.setPos(1700, 59)
 
+        self.refresh_button_proxy = QGraphicsProxyWidget()
+        self.refresh_button_proxy.setWidget(self.refresh_button)
+        self.refresh_button_proxy.setPos(1900, 750)
+
         # Add the QGraphicsProxyWidget objects to the QGraphicsScene
         self.scene.addItem(self.listViewLeftProxy)
         self.scene.addItem(self.boardProxy)
@@ -444,6 +455,7 @@ class MyApp(QMainWindow, Lobby):
         self.scene.addItem(self.load_piece_button_proxy)
         self.scene.addItem(self.load_piece_button_up_proxy)
         self.scene.addItem(self.undo_button_proxy)
+        self.scene.addItem(self.refresh_button_proxy)
 
         # self.scene.addItem(self.save_jason_proxy)
 
@@ -464,6 +476,9 @@ class MyApp(QMainWindow, Lobby):
         self.load_piece_button.clicked.connect(self.load_piece)
         self.load_piece_button_up.clicked.connect(self.load_piece_up)
         self.undo_button.clicked.connect(self.save_board_state)
+        self.undo_button.clicked.connect(self.analog_timer.restart_timer)
+        self.refresh_button.clicked.connect(self.load_board)
+        self.refresh_button.clicked.connect(self.analog_timer.restart_timer)
 
     def init_db(self):
         conn = sqlite3.connect("database/game_history.db")
@@ -486,7 +501,7 @@ class MyApp(QMainWindow, Lobby):
             f.write("[]")
 
         with open("database/board_state_json.json", "w") as f:
-            f.write("<boardHistory></boardHistory>")
+            f.write("[[null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]]")
 
         # Clear the XML history file
         with open("database/board_state.xml", "w") as f:
@@ -661,6 +676,28 @@ class MyApp(QMainWindow, Lobby):
                             self.board.setItem(row, col, item)
                     else:
                         self.board.takeItem(row, col)
+
+    def load_board(self):
+        with open('database/board_state_json.json', 'r') as file:
+            data = json.load(file)
+
+        for row_data in data:
+            for tile_data in row_data:
+                if tile_data is not None:
+                    print(tile_data, type(tile_data), "\n")
+                    number = tile_data['number']
+                    color = tile_data['color']
+                    row = tile_data['row']
+                    col = tile_data['col']
+                    icon_name = f":/images/{number}-{color}.png"
+                    icon = QIcon(icon_name)
+
+                    tile = Tile(number=number, color=color)
+                    tile.setIcon(icon)
+                    tile.setData(number, Qt.ItemDataRole.UserRole)
+
+                    # Update the board
+                    self.board.set_tile(tile, row, col)
 
     # Moves checker
     def check_board(self):
