@@ -278,18 +278,23 @@ class Lobby(QWidget):
         self.vbox = QVBoxLayout()
         self.hbox = QHBoxLayout()
 
+        self.ip_input = IpPortInput()
+        self.ip_input.hide()
+
         self.button1 = QRadioButton("Single player")
         self.button1.toggled.connect(self.updateLabel)
+        self.button1.toggled.connect(self.ip_input.hide)
         self.button2 = QRadioButton("1 vs 1")
         self.button2.toggled.connect(self.updateLabel)
+        self.button2.toggled.connect(self.ip_input.show)
         self.button3 = QRadioButton("Player vs AI")
         self.button3.toggled.connect(self.updateLabel)
+        self.button3.toggled.connect(self.ip_input.hide)
         self.label = QLabel('', self)
         self.info = QLabel("Choose game mode:")
         self.accept_button = QPushButton("Accept game mode")
         self.accept_button.clicked.connect(self.showMainWindow)
 
-        self.ip_input = IpPortInput()
         # self.ip_input.get_ip_port()
 
         self.hbox.addWidget(self.button1)
@@ -328,14 +333,17 @@ class Lobby(QWidget):
             QMessageBox.warning(self, "Error", "Choose game mode")
             return
 
-        if not hasattr(self.ip_input, "port_number"):
+        if not hasattr(self.ip_input, "port_number") and self.game_mode == "2":
             QMessageBox.warning(self, "Error", "Choose port number")
             return
 
-        ip_address = self.ip_input.ip_address
-        port_number = self.ip_input.port_number
-
-        print(ip_address, port_number)
+        if self.game_mode == "2":
+            ip_address = self.ip_input.ip_address
+            port_number = self.ip_input.port_number
+        else:
+            ip_address = "0"
+            port_number = "0"
+        #print(ip_address, port_number)
 
         self.mainWindow = MyApp(self.game_mode, ip_address, port_number)
         self.mainWindow.showFullScreen()
