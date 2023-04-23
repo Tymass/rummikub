@@ -258,6 +258,7 @@ class IpPortInput(QWidget):
         self.layout.addWidget(self.apply_button)
 
     def get_ip_port(self):
+
         self.ip_address = self.ip_input.text()
         self.port_number = self.port_input.text()
         print(
@@ -288,6 +289,9 @@ class Lobby(QWidget):
         self.accept_button = QPushButton("Accept game mode")
         self.accept_button.clicked.connect(self.showMainWindow)
 
+        self.ip_input = IpPortInput()
+        # self.ip_input.get_ip_port()
+
         self.hbox.addWidget(self.button1)
         self.hbox.addWidget(self.button2)
         self.hbox.addWidget(self.button3)
@@ -296,10 +300,11 @@ class Lobby(QWidget):
         self.vbox.addLayout(self.hbox)
         self.vbox.addWidget(self.label)
         self.vbox.addWidget(self.accept_button)
+        self.vbox.addWidget(self.ip_input)
 
         self.setLayout(self.vbox)
 
-        self.setGeometry(400, 300, 350, 250)
+        self.setGeometry(500, 500, 500, 250)
         self.setWindowTitle("Lobby")
         self.show()
 
@@ -323,7 +328,16 @@ class Lobby(QWidget):
             QMessageBox.warning(self, "Error", "Choose game mode")
             return
 
-        self.mainWindow = MyApp(self.game_mode)
+        if not hasattr(self.ip_input, "port_number"):
+            QMessageBox.warning(self, "Error", "Choose port number")
+            return
+
+        ip_address = self.ip_input.ip_address
+        port_number = self.ip_input.port_number
+
+        print(ip_address, port_number)
+
+        self.mainWindow = MyApp(self.game_mode, ip_address, port_number)
         self.mainWindow.showFullScreen()
         self.destroy()
         return self.game_mode
@@ -332,7 +346,7 @@ class Lobby(QWidget):
 
 
 class MyApp(QMainWindow, Lobby):
-    def __init__(self, game_mode):
+    def __init__(self, game_mode, ip_address, port_number):
         super().__init__()
         self.setWindowTitle('MyApp')
         # self.showFullScreen()
@@ -343,6 +357,8 @@ class MyApp(QMainWindow, Lobby):
         self.container = []
         self.upper_bar_moves = []
         self.move_history = []
+        self.ip_address = ip_address
+        self.port_number = port_number
 
         # Create a QGraphicsScene
         self.scene = QGraphicsScene()
@@ -360,7 +376,7 @@ class MyApp(QMainWindow, Lobby):
         self.load_piece_button_up = QPushButton("Add Piece")
         self.undo_button = QPushButton("Save game state")
         self.save_json = QPushButton("Save history to Jason")
-        self.ip_input = IpPortInput()
+        #self.ip_input = IpPortInput()
 
         # Create QGraphicsProxyWidget objects for all widgets
         # List 1
@@ -409,10 +425,6 @@ class MyApp(QMainWindow, Lobby):
         self.save_jason_proxy.setWidget(self.save_json)
         self.save_jason_proxy.setPos(1700, 59)
 
-        self.ip_input_proxy = QGraphicsProxyWidget()
-        self.ip_input_proxy.setWidget(self.ip_input)
-        self.ip_input_proxy.setPos(1800, -120)
-
         # Add the QGraphicsProxyWidget objects to the QGraphicsScene
         self.scene.addItem(self.listViewLeftProxy)
         self.scene.addItem(self.boardProxy)
@@ -424,7 +436,7 @@ class MyApp(QMainWindow, Lobby):
         self.scene.addItem(self.load_piece_button_proxy)
         self.scene.addItem(self.load_piece_button_up_proxy)
         self.scene.addItem(self.undo_button_proxy)
-        self.scene.addItem(self.ip_input_proxy)
+
         # self.scene.addItem(self.save_jason_proxy)
 
         # Set the QGraphicsScene as the central widget of the main window
@@ -444,7 +456,6 @@ class MyApp(QMainWindow, Lobby):
         self.load_piece_button.clicked.connect(self.load_piece)
         self.load_piece_button_up.clicked.connect(self.load_piece_up)
         self.undo_button.clicked.connect(self.save_board_state)
-        # self.save_json.clicked.connect(self.save_board_state_to_json_file)
 
     def init_db(self):
         conn = sqlite3.connect("database/game_history.db")
@@ -463,8 +474,11 @@ class MyApp(QMainWindow, Lobby):
 
     def initialize_history_files(self):
         # Clear the JSON history file
-        with open("database/board_state_json.json", "w") as f:
+        with open("database/game_config_json.json", "w") as f:
             f.write("[]")
+
+        with open("database/board_state_json.json", "w") as f:
+            f.write("<boardHistory></boardHistory>")
 
         # Clear the XML history file
         with open("database/board_state.xml", "w") as f:
@@ -518,17 +532,35 @@ class MyApp(QMainWindow, Lobby):
             # self.move_history.append(self.save_board_state())
             # print(self.move_history)
 
-    def get_ip_port_values(self):
-        return self.ip_input.ip_address, self.ip_input.port_number
+    def save_board_state_to_json_file(self, state, file_name):
+        # Convert the state to a format suitable for JSON serialization
+        json_state = []
+        for row_idx, row in enumerate(state):
+            json_row = []
+            for col_idx, cell in enumerate(row):
+                if cell:
+                    json_row.append({
+                        "number": cell[0],
+                        "color": cell[1],
+                        "row": row_idx,
+                        "col": col_idx
+                    })
+                else:
+                    json_row.append(None)
+            json_state.append(json_row)
 
-    def save_board_state_to_json_file(self, file_name):
+        # Save the JSON state to a file
+        with open(file_name, "w") as f:
+            json.dump(json_state, f)
+
+    def save_game_config_to_json_file(self, file_name):
         # Read the existing history
-        ip_address, port_number = self.get_ip_port_values()
+
         history = []
         # Append the current state
         config = {
-            "ip_address": str(ip_address),
-            "port_nr": str(port_number),
+            "ip_address": str(self.ip_address),
+            "port_nr": str(self.port_number),
             "game_mode": str(self.game_mode),
         }
 
@@ -557,7 +589,7 @@ class MyApp(QMainWindow, Lobby):
                     cell_element = ET.SubElement(row_element, "cell")
                     cell_element.set("number", str(cell[0]))
                     cell_element.set("color", cell[1])
-                    #cell_element.set("icon", cell[2])
+                    # cell_element.set("icon", cell[2])
                 else:
                     ET.SubElement(row_element, "emptyCell")
 
@@ -583,17 +615,19 @@ class MyApp(QMainWindow, Lobby):
             for col in range(self.board.columnCount()):
                 item = self.board.item(row, col)
                 if item:
-                    row_copy.append(
-                        (item.tile.number, item.tile.color))
+                    row_copy.append((item.tile.number, item.tile.color))
                 else:
                     row_copy.append(None)
             state_copy.append(row_copy)
+
         # print(state_copy)
         self.save_board_state_to_xml_file(
             state_copy, "database/board_state.xml")
-        self.save_board_state_to_json_file("database/board_state_json.json")
+        self.save_game_config_to_json_file("database/game_config_json.json")
         json_state = json.dumps(state_copy)
         self.save_game_state(json_state)
+        self.save_board_state_to_json_file(
+            state_copy, "database/board_state_json.json")
 
         return state_copy
 
@@ -683,7 +717,7 @@ if __name__ == '__main__':
     size = screen.size()
     w = size.width()
     h = size.height()
-    #myApp = MyApp()
+    # myApp = MyApp()
 
     ex = Lobby()
 
