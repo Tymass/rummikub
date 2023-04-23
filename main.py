@@ -678,7 +678,7 @@ class MyApp(QMainWindow, Lobby):
                         self.board.takeItem(row, col)
 
     def load_board(self):
-        with open('database/board_state_json.json', 'r') as file:
+        with open('database/json_received.json', 'r') as file:
             data = json.load(file)
 
         for row_data in data:

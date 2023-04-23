@@ -53,8 +53,7 @@ Tcp_server_wait(5, 17098)
 Tcp_server_next()
 
 while True:
-
-    json_data = str(Tcp_Read())
+    json_data = Tcp_Read()
     with open("database/json_received.json", "w") as f:
         json.dump(json_data, f)
     break
