@@ -32,6 +32,12 @@ def Tcp_Write(D):
     return
 
 
+def send_file(file_path):
+    with open(file_path, 'r') as file:
+        file_contents = file.read()
+    Tcp_Write(file_contents)
+
+
 def Tcp_Read():
     a = ' '
     b = ''
@@ -40,7 +46,9 @@ def Tcp_Read():
         b = b + a
 
     b_dict = eval(b)  # dictionary format
-    return b_dict
+    with open("database/json_received.json", "w") as f:
+        json.dump(b_dict, f)
+    # return b_dict
 
 
 def Tcp_Close():
@@ -54,8 +62,7 @@ Tcp_server_next()
 
 while True:
     json_data = Tcp_Read()
-    with open("database/json_received.json", "w") as f:
-        json.dump(json_data, f)
+    send_file('database/board_state_json.json')
     break
 
 Tcp_Close()

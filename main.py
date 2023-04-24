@@ -239,6 +239,42 @@ class AnalogTimer(QWidget):
         painter.restore()
 
 
+class Server:
+    def __init__(self, host_ip, port):
+        self.host_ip = host_ip
+        self.port = port
+
+    def Tcp_server_wait(port):
+        global s2
+        s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s2.bind(('', port))
+        # s2.listen(numofclientwait)
+
+    def Tcp_server_next():
+        global s
+        s = s2.accept()[0]
+
+    def Tcp_Write(D):
+        mes = str(D + '\r')
+        s.send(mes.encode())
+        return
+
+    def Tcp_Read():
+        a = ' '
+        b = ''
+        while a != '\r':
+            a = s.recv(1).decode()
+            b = b + a
+
+        b_dict = eval(b)  # dictionary format
+        with open("database/json_received.json", "w") as f:
+            json.dump(b_dict, f)
+
+    def Tcp_Close():
+        s.close()
+        return
+
+
 class IpPortInput(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -300,8 +336,6 @@ class Lobby(QWidget):
         self.info = QLabel("Choose game mode:")
         self.accept_button = QPushButton("Accept game mode")
         self.accept_button.clicked.connect(self.showMainWindow)
-
-        # self.ip_input.get_ip_port()
 
         self.hbox.addWidget(self.button1)
         self.hbox.addWidget(self.button2)
@@ -391,7 +425,9 @@ class MyApp(QMainWindow, Lobby):
         self.undo_button = QPushButton("Next Round")
         self.save_json = QPushButton("Save history to Jason")
         self.refresh_button = QPushButton("Refresh")
-        #self.ip_input = IpPortInput()
+
+        if self.game_mode == "2":
+            server = Server(port_number)
 
         # Create QGraphicsProxyWidget objects for all widgets
         # List 1
@@ -475,6 +511,9 @@ class MyApp(QMainWindow, Lobby):
         self.restart_button.clicked.connect(self.analog_timer.restart_timer)
         self.load_piece_button.clicked.connect(self.load_piece)
         self.load_piece_button_up.clicked.connect(self.load_piece_up)
+        # ------------------------------------------------------------------------------------
+        self.undo_button.clicked.connect(server.Tcp_server_wait)
+        self.undo_button.clicked.connect(server.Tcp_server_next)
         self.undo_button.clicked.connect(self.save_board_state)
         self.undo_button.clicked.connect(self.analog_timer.restart_timer)
         self.refresh_button.clicked.connect(self.load_board)
@@ -501,7 +540,7 @@ class MyApp(QMainWindow, Lobby):
             f.write("[]")
 
         with open("database/board_state_json.json", "w") as f:
-            f.write("[[null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]]")
+            f.write("")
 
         # Clear the XML history file
         with open("database/board_state.xml", "w") as f:
@@ -557,20 +596,21 @@ class MyApp(QMainWindow, Lobby):
 
     def save_board_state_to_json_file(self, state, file_name):
         # Convert the state to a format suitable for JSON serialization
-        json_state = []
+        json_state = {"board": []}
+
         for row_idx, row in enumerate(state):
-            json_row = []
             for col_idx, cell in enumerate(row):
+                cell_name = f"cell_{row_idx}_{col_idx}"
                 if cell:
-                    json_row.append({
-                        "number": cell[0],
-                        "color": cell[1],
-                        "row": row_idx,
-                        "col": col_idx
+                    json_state["board"].append({
+                        cell_name: {
+                            "empty": False,
+                            "number": cell[0],
+                            "color": cell[1]
+                        }
                     })
                 else:
-                    json_row.append(None)
-            json_state.append(json_row)
+                    json_state["board"].append({cell_name: {"empty": True}})
 
         # Save the JSON state to a file
         with open(file_name, "w") as f:
@@ -681,23 +721,25 @@ class MyApp(QMainWindow, Lobby):
         with open('database/json_received.json', 'r') as file:
             data = json.load(file)
 
-        for row_data in data:
-            for tile_data in row_data:
-                if tile_data is not None:
-                    print(tile_data, type(tile_data), "\n")
-                    number = tile_data['number']
-                    color = tile_data['color']
-                    row = tile_data['row']
-                    col = tile_data['col']
-                    icon_name = f":/images/{number}-{color}.png"
-                    icon = QIcon(icon_name)
+        board_data = data['board']
 
-                    tile = Tile(number=number, color=color)
-                    tile.setIcon(icon)
-                    tile.setData(number, Qt.ItemDataRole.UserRole)
+        for cell_data in board_data:
+            cell_key = list(cell_data.keys())[0]
+            cell_info = cell_data[cell_key]
 
-                    # Update the board
-                    self.board.set_tile(tile, row, col)
+            if not cell_info['empty']:
+                row, col = map(int, cell_key.split('_')[1:])
+                number = cell_info['number']
+                color = cell_info['color']
+                icon_name = f":/images/{number}-{color}.png"
+                icon = QIcon(icon_name)
+
+                tile = Tile(number=number, color=color)
+                tile.setIcon(icon)
+                tile.setData(number, Qt.ItemDataRole.UserRole)
+
+                # Update the board
+                self.board.set_tile(tile, row, col)
 
     # Moves checker
     def check_board(self):
